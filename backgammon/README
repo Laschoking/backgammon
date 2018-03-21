@@ -1,0 +1,67 @@
+Your assignment is to develop a computer player for the game of Backgammon. The
+code archive you get includes everything you need to get started. It should
+compile and run on most Linux distributions, although we only officially
+support the Ubuntu configuration in the computer pool. If you want to work on
+your own machine, you need a reasonably modern C++ compiler -- recent versions
+of gcc or LLVM's clang should be fine.
+
+The rules of the game are explained in Wikipedia:
+https://en.wikipedia.org/w/index.php?title=Backgammon&oldid=593827112
+
+These rules are binding when it comes to passing the course. The sole exception
+is that no invalid moves are tolerated - neither by your player nor by its
+opponent - even though the rules would allow that as long as no player objects.
+Your player is *required* to strictly abide by these rules.
+
+Additionally, this FAQ may be of interest:
+http://www.bkgm.com/faq/BasicRules.html
+
+
+The code archive you received includes a Makefile to compile everything. The
+code is commented and you are advised to read through the example player code
+and the relevant header files (especially 'state.h'). The command 'make help'
+tells you about the supported build targets. A plain 'make' will compile
+everything.
+
+Once compiled, you get three binaries:
+
+- The Master Control Program (MCP) allows two computer programs to
+  play against each other. The MCP orchestrates the game by sending
+  the current game state to the players and receiving their moves.
+  The MCP enforces these rules and makes sure the players behave.
+
+- An example player, which allows you to play the game yourself using
+  keyboard input. Run 'make demo' to start up a game with two of these
+  players.
+
+- An empty file 'my-player.cc' where you should develop your game
+  playing algorithm. Look at the example player to learn how you receive
+  the game state from the MCP and how to send your own move back. You
+  may copy code from the example player, otherwise all player code has
+  to be written by you. You may not use code from the MCP. (That's why
+  the interesting bits of the MCP are obfuscated by providing them in
+  assembler code.)
+
+  Please note that you are not allowed to link against the internal
+  state implementation, so all functions declared in 'state-internal.h'
+  are off-limits. These functions are actually part of the MCP and are
+  used by the example player to allow for more convenient user input.
+  Of course, you are free to implement similar functions yourself...
+
+  Use 'make run' to start your player against the example player, so
+  you can play the game against the computer.
+
+
+
+The official check whether you pass the assignment and also the
+tournament is performed under a time and memory limit for your
+player. You may use 1GB of memory and up to 60 seconds of think time
+for one move (multiple threads are allowed, 'fork()' is not). These
+limits are enforced by the MCP. You can test your player under these
+conditions using 'make fight'.
+
+If you implement a long-running algorithm in your player, you may
+react to the SIGXCPU signal. The MCP sends this signal when the 60
+second think timer has expired. If you react to this signal, you get
+one extra second to report your move to the MCP before it SIGKILLs
+you.
