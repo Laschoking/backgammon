@@ -1,1 +1,1 @@
-my-player.o: my-player.cc
+my-player.o: my-player.cc include/mcp.h include/state.h

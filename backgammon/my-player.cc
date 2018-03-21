@@ -1,4 +1,13 @@
 #include <stdio.h>
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <mcp.h>
+#include <state.h>
+#include <iostream>
+#include <vector>
 
 /* You may want to use code from 'example-player.cc' for your own
  * implementation. Feel free to do so, but keep in mind that anything
@@ -43,9 +52,60 @@
 int
 main(int, char**) // ignore command line parameters
 {
-  printf("Implement me!\n");
+    game_state state, int_state;
+    multi_move mmove;
+    game_move int_move;
+
+    initialize_multi_move(&mmove);
+
+    /* Retrieve current game state*/
+    if (! deserialize_state(CHILD_IN_FD, &state) ) { abort(); }
+
+    /* Show the current board */
+    print_state(&state);
+    std::cout << " dice 1: "<< state.dice[0] << '\n';
+    std::cout << " dice 2: "<< state.dice[1] << '\n';
+    for (int i = 0; i < 26; i++){
+      std::cout << " " << state.board[i] ;
+    }
+    std::vector<int> blockedPoints;
+    std::vector<int> hitPoints; //Points where one enemy checker may be hit
+
+    for (int p  = 1; p < 25; p++){
+      if (state.board[p] < (-1)); blockedPoints.push_back(p);
+      if (state.board[p] == (-1)); hitPoints.push_back(p);
+    }
+
+
+    std::cout << '\n' << "elemente in blockedPoints " << blockedPoints.size() << '\n';
+    std::cout <<  "elemente in hitPoints " << hitPoints.size() << '\n';
+    /*int *i;
+    i = blockedPoints.begin;
+    while (i != blockedPoints.end){
+      std::cout << "blockedPoints"<< blockedPoints[i] << '\n';
+      i++;
+    }*/
+    /* Here be dragons! */
+
 
   return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* EOF */
