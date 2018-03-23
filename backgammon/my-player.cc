@@ -41,8 +41,7 @@ void fill_move(int array_position, int move_number, int dice){
   mmove.moves[move_number].point_from = checkers[array_position];
   mmove.moves[move_number].roll = state.dice[dice];
    //"neue" Position berechnen für folgenden Spielzug
-  if ( checkers[array_position] == 0) checkers[array_position] = 25 - state.dice[dice];
-  else checkers[array_position] += state.dice[dice];
+  checkers[array_position] += state.dice[dice];
   }
 
 /* Nach Verwendung eines Würfels muss intern eine neue Position des bewegten Steines
@@ -57,7 +56,7 @@ void reset_checkers(int array_position, int dice){
 void init_allMoves(){
   int i,d,k;
   if ( state.dice[0] != state.dice[1] ){
-    /* kein Pasch*/
+    /* kein Pasch */
     for (d = 0; d < 2; d++){
 
       for (i = 0; i < 15; i++){
@@ -151,6 +150,8 @@ main(int, char**) // ignore command line parameters
 {
   while(true){
 
+    initialize_multi_move(&mmove);
+
     /* Retrieve current game state*/
     if (! deserialize_state(CHILD_IN_FD, &state) ) { abort(); }
     blockedPoints.clear();
@@ -166,10 +167,10 @@ main(int, char**) // ignore command line parameters
     for (int i = 0; i < 15; i++)std::cout << "own checker position "<< checkers[i] << '\n';
 
     sort_out_blocked_Moves();
-    std::cout <<"\n reduced sort_out_blocked_Moves size " << allMoves.size() << '\n';
+    std::cout << "\n reduced sort_out_blocked_Moves size " << allMoves.size() << '\n';
 
     sort_out_shorter_Moves();
-    std::cout <<"reduced sort_out_shorter_Moves size " << allMoves.size() << '\n';
+    std::cout << "reduced sort_out_shorter_Moves size " << allMoves.size() << '\n';
 
     for (int k = 0; k < allMoves[0].num_moves ; k++){
     //std::cout << " iterator" <<find(blockedPoints.begin(), blockedPoints.end(),
