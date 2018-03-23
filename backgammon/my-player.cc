@@ -67,20 +67,19 @@ void init_allMoves(){
     for (d = 0; d < 2; d++){
 
       for (i = 0; i < 15; i++){
-        if ((i == 0) || checkers[i] != checkers[i - 1] )
-        {
-          mmove.num_moves = 1;
-          fill_move(i, 0 , 0 + d);
-          allMoves.push_back(mmove);
+        if ((i > 0) && (checkers[i] == checkers[(i - 1)])) continue;
+        mmove.num_moves = 1;
+        fill_move(i, 0 , 0 + d);
+        allMoves.push_back(mmove);
 
-          for (k = 0; k < 15; k++){
-            mmove.num_moves = 2;
-            fill_move(k, 1, (1 + d) % 2);
-            allMoves.push_back(mmove);
-            reset_checkers(k, (1 + d) % 2);
-          }
-          reset_checkers(i, 0 + d);
+        for (k = 0; k < 15; k++){
+          if ((k > 0) && (checkers[k] == checkers[(k - 1)])) continue;
+          mmove.num_moves = 2;
+          fill_move(k, 1, (1 + d) % 2);
+          allMoves.push_back(mmove);
+          reset_checkers(k, (1 + d) % 2);
         }
+        reset_checkers(i, 0 + d);
       }
     }
   }
@@ -88,28 +87,30 @@ void init_allMoves(){
   else{
 
       for (i = 0; i < 15; i++){
-        if ((i == 0) || checkers[i] != checkers[i - 1] ){
+        if ((i == 0) || checkers[i] != checkers[(i - 1)] ){
           mmove.num_moves = 1;
           fill_move(i, 0, 0);
           allMoves.push_back(mmove);
 
           for (k = 0; k < 15; k++){
-            if ((i == 0) || checkers[i] != checkers[i - 1] ){
+            if ((k == 0) || checkers[k] != checkers[(k - 1)] ){
               mmove.num_moves = 2;
               fill_move(k, 1, 0);
               allMoves.push_back(mmove);
 
               for (int j = 0; j < 15; j++){
-                if ((i == 0) || checkers[i] != checkers[i - 1] ){
+                if ((j == 0) || checkers[j] != checkers[(j - 1)] ){
                   mmove.num_moves = 3;
                   fill_move(j, 2, 0);
                   allMoves.push_back(mmove);
 
                   for (int r = 0; r < 15; r++){
-                    mmove.num_moves = 4;
-                    fill_move(r, 3 ,0);
-                    allMoves.push_back(mmove);
-                    reset_checkers(r,0);
+                    if ((r == 0) || (checkers[r] != checkers[(r - 1)])){
+                      mmove.num_moves = 4;
+                      fill_move(r, 3 ,0);
+                      allMoves.push_back(mmove);
+                      reset_checkers(r,0);
+                    }
                   }
                 }
                 reset_checkers(j,0);
@@ -241,19 +242,26 @@ main(int, char**) // ignore command line parameters
 
     /* Show the current board */
     print_state(&state);
-    std::cout << "steine auf der Bar" <<state.board[0];
+    std::cout << "steine auf der Bar " <<state.board[0];
 
     init_allMoves();
-    std::cout <<"\n allMoves size" << allMoves.size() << '\n';
-    for (int i = 0; i < 15; i++)std::cout << "own checker position "<< checkers[i] << '\n';
+    std::cout <<"\n allMoves size " << allMoves.size() << '\n';
+    for (int i = 0; i < 15; i++)std::cout << " " << checkers[i];
     remove_blocked_Points();
     std::cout << "\nreduced by blocked_Moves: size " << allMoves.size() << '\n';
 
     remove_shorter_Moves();
     std::cout << "reduced by shorter_Moves: size " << allMoves.size() << '\n';
-
+    for (int i = 0; i< allMoves.size(); i++){
+      std::cout << "num_moves " << allMoves[i].num_moves << " : ";
+      for (int k = 0; k < allMoves[i].num_moves; k++ ){
+        std::cout << " (" << allMoves[i].moves[k].point_from << " "<< allMoves[i].moves[k].roll << ") ";
+      }
+      std::cout << "\n";
+    }
     if(allMoves[0].num_moves = 1) remove_lower_dice();
     std::cout << "reduced by lower_Dice_Moves: size " << allMoves.size() << '\n';
+    for (int i = 0; i < 15; i++)std::cout << " " << checkers[i];
 
     serialize_moves(CHILD_OUT_FD, &allMoves[0]);
   }
