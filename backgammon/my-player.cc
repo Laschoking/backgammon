@@ -45,17 +45,21 @@ void fill_move(int array_position, int move_number, int dice){
   else checkers[array_position] += state.dice[dice];
   }
 
+/* Nach Verwendung eines Würfels muss intern eine neue Position des bewegten Steines
+angelegt werden, damit Folgezug korrekt.
+Hier wird Position, auf die letzte Änderung zurückgesetzt*/
 
 void reset_checkers(int array_position, int dice){
   checkers[array_position] -= state.dice[dice];
-  //if (checkers[array_position] ==  25 ) checkers[array_position] = 0;
 }
 
+/* auch ungültige Züge können vorerst in allMoves enthalten sein*/
 void init_allMoves(){
   int i,d,k;
   if ( state.dice[0] != state.dice[1] ){
+    /* kein Pasch*/
+    for (d = 0; d < 2; d++){
 
-    for (d = 0; d < 2; d++){ //für beide würfelkombos
       for (i = 0; i < 15; i++){
         mmove.num_moves = 1;
         fill_move(i, 0 , 0 + d);
@@ -63,8 +67,6 @@ void init_allMoves(){
 
         for (k = 0; k < 15; k++){
           mmove.num_moves = 2;
-
-
           fill_move(k, 1, (1 + d) % 2);
           allMoves.push_back(mmove);
           reset_checkers(k, (1 + d) % 2);
@@ -110,18 +112,23 @@ void init_allMoves(){
     }
   }
 
+
+/*prüft ob zünftige Position blockiert ist */
 void sort_out_blocked_Moves(){
-  for( int i = 0; i < allMoves.size(); i++){
-    for(int k = 0; k < allMoves[i].num_moves ; k++){
-      /*prüft ob zünftige Position blockiert ist */
+  bool deleted;
+  for (int i = 0; i < allMoves.size(); i++){
+    deleted = false;
+    for (int k = 0; !deleted && k < allMoves[i].num_moves ; k++){
       if (find(blockedPoints.begin(), blockedPoints.end(),
       (allMoves[i].moves[k].point_from + allMoves[i].moves[k].roll))
       != blockedPoints.end()){
         allMoves.erase(allMoves.begin() + i);
+        deleted = true;
       }
     }
   }
 }
+
 
 void sort_out_shorter_Moves(){
   int current_moves, max_moves, max_iterator;
@@ -142,17 +149,18 @@ void sort_out_shorter_Moves(){
 int
 main(int, char**) // ignore command line parameters
 {
-
+  while(true){
 
     /* Retrieve current game state*/
     if (! deserialize_state(CHILD_IN_FD, &state) ) { abort(); }
-
+    blockedPoints.clear();
+    allMoves.clear();
     /* Show the current board */
     print_state(&state);
 
     init_checkers_blockedPoints();
-    std::cout << '\n' << "elemente in blockedPoints " << blockedPoints.size() << '\n';
-    for(int i = 0; i < blockedPoints.size();i++) std::cout<< blockedPoints[i];
+    std::cout << '\n' << "elemente in blockedPoints: " << blockedPoints.size() << '\n';
+    for(int i = 0; i < blockedPoints.size();i++) std::cout<< " " << blockedPoints[i];
     init_allMoves();
     std::cout <<"\n allMoves size" << allMoves.size() << '\n';
     for (int i = 0; i < 15; i++)std::cout << "own checker position "<< checkers[i] << '\n';
@@ -161,30 +169,16 @@ main(int, char**) // ignore command line parameters
     std::cout <<"\n reduced sort_out_blocked_Moves size " << allMoves.size() << '\n';
 
     sort_out_shorter_Moves();
-    std::cout <<"\n reduced sort_out_shorter_Moves size " << allMoves.size() << '\n';
+    std::cout <<"reduced sort_out_shorter_Moves size " << allMoves.size() << '\n';
 
-
+    for (int k = 0; k < allMoves[0].num_moves ; k++){
+    //std::cout << " iterator" <<find(blockedPoints.begin(), blockedPoints.end(),
+    //  (allMoves[0].moves[k].point_from + allMoves[0].moves[k].roll));
+      std::cout << "\n neue Position" << allMoves[0].moves[k].point_from + allMoves[0].moves[k].roll;
+    }
     serialize_moves(CHILD_OUT_FD, &allMoves[0]);
+  }
 
 
   return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* EOF */
