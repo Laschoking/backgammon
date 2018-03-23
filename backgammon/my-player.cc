@@ -10,6 +10,7 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <iterator>
 
  /*Globale Variablen,Listen etc.
  //////////////////////////////////////////*/
@@ -26,6 +27,7 @@
 void init_checkers(){
   int iteratorCheckers;
   iteratorCheckers = 0;
+  /* alternativ auch get_higher_bar(state.board[0])*/
   for( int k = 0; k < (state.board[0] / 100); k++){
     checkers[iteratorCheckers] = 0;
     iteratorCheckers++;
@@ -60,56 +62,61 @@ void reset_checkers(int array_position, int dice){
 /* auch ungültige Züge können vorerst in allMoves enthalten sein*/
 void init_allMoves(){
   int i,d,k;
-  if ( state.dice[0] != state.dice[1] ){
+    if ( state.dice[0] != state.dice[1] ){
     /* kein Pasch */
     for (d = 0; d < 2; d++){
 
       for (i = 0; i < 15; i++){
-        mmove.num_moves = 1;
-        fill_move(i, 0 , 0 + d);
-        allMoves.push_back(mmove);
-
-        for (k = 0; k < 15; k++){
-          mmove.num_moves = 2;
-          fill_move(k, 1, (1 + d) % 2);
+        if ((i == 0) || checkers[i] != checkers[i - 1] )
+        {
+          mmove.num_moves = 1;
+          fill_move(i, 0 , 0 + d);
           allMoves.push_back(mmove);
-          reset_checkers(k, (1 + d) % 2);
+
+          for (k = 0; k < 15; k++){
+            mmove.num_moves = 2;
+            fill_move(k, 1, (1 + d) % 2);
+            allMoves.push_back(mmove);
+            reset_checkers(k, (1 + d) % 2);
+          }
+          reset_checkers(i, 0 + d);
         }
-        reset_checkers(i, 0 + d);
       }
     }
   }
-  /*Pasch */
+  /* Pasch */
   else{
 
       for (i = 0; i < 15; i++){
-        mmove.num_moves = 1;
-        fill_move(i, 0, 0);
-        allMoves.push_back(mmove);
-
-
-        for (k = 0; k < 15; k++){
-          mmove.num_moves = 2;
-          fill_move(k, 1, 0);
+        if ((i == 0) || checkers[i] != checkers[i - 1] ){
+          mmove.num_moves = 1;
+          fill_move(i, 0, 0);
           allMoves.push_back(mmove);
 
-
-          for (int j = 0; j < 15; j++){
-            mmove.num_moves = 3;
-            fill_move(j, 2, 0);
-            allMoves.push_back(mmove);
-
-
-            for (int r = 0; r < 15; r++){
-              mmove.num_moves = 4;
-              fill_move(r, 3 ,0);
+          for (k = 0; k < 15; k++){
+            if ((i == 0) || checkers[i] != checkers[i - 1] ){
+              mmove.num_moves = 2;
+              fill_move(k, 1, 0);
               allMoves.push_back(mmove);
-              reset_checkers(r,0);
 
+              for (int j = 0; j < 15; j++){
+                if ((i == 0) || checkers[i] != checkers[i - 1] ){
+                  mmove.num_moves = 3;
+                  fill_move(j, 2, 0);
+                  allMoves.push_back(mmove);
+
+                  for (int r = 0; r < 15; r++){
+                    mmove.num_moves = 4;
+                    fill_move(r, 3 ,0);
+                    allMoves.push_back(mmove);
+                    reset_checkers(r,0);
+                  }
+                }
+                reset_checkers(j,0);
+              }
             }
-            reset_checkers(j,0);
+            reset_checkers(k,0);
           }
-          reset_checkers(k,0);
         }
         reset_checkers(i,0);
       }
@@ -120,18 +127,17 @@ void init_allMoves(){
   void remove_blocked_Points(){
     std::vector<int> blockedPoints;
     bool deleted;
-    /*prüft ob zünftige Position blockiert ist */
+    /*prüft ob zukünftige Position blockiert ist */
     for (int l = 1; l < 25; l++){
       if (state.board[l] > (1)) blockedPoints.push_back(l);
     }
     std::cout << "blockedPoints " << blockedPoints.size();
-
     for (int i = 0; i < allMoves.size(); i++){
       deleted = false;
       for (int k = 0; !deleted && k < allMoves[i].num_moves; k++){
 
         /* return 1 wenn zukünfitge Position in blockedPoints enthalten */
-         if (find(blockedPoints.begin(), blockedPoints.end(),
+         if (std::find(blockedPoints.begin(), blockedPoints.end(),
          (allMoves[i].moves[k].point_from + allMoves[i].moves[k].roll))
          != blockedPoints.end()){
            allMoves.erase(allMoves.begin() + i);
@@ -143,25 +149,39 @@ void init_allMoves(){
          }
        }
      }
-  }
+     /* in virtual_checkers werden die Positionen anhand vorheriger moves bestimmt */
+     int virtual_checkers[15];
+     std::vector<int> bearOff = {25,26,27,28,29,30};
+     int array_position;
 
-    /*
-     soll 25- 30 blockieren, vor bear off phase .
-     geht so vmtl. aber nicht, da ja nach 1. move, plötzlich alle checker
-    im homeboard sein können, und zweiter Move = bear off
-    if (checkers[0] < 19){
-      blockedPoints.push_back(25);
-      blockedPoints.push_back(26);
-      blockedPoints.push_back(27);
-      blockedPoints.push_back(28);
-      blockedPoints.push_back(29);
-      blockedPoints.push_back(30);
-    }
-  }
-  */
+     /* bearOff positionen, die abhängig vom Vogänger-move möglich sind */
+     for (int i = 0; i < allMoves.size(); i++){
+       std::copy(std::begin(checkers), std::end(checkers), std::begin(virtual_checkers));
+       deleted = false;
+       for (int k = 0; !deleted && k < allMoves[i].num_moves; k++){
+
+         if ( *std::min_element(std::begin(virtual_checkers),std::end(virtual_checkers)) < 19){
+           if (std::find(bearOff.begin(), bearOff.end(),
+           (allMoves[i].moves[k].point_from + allMoves[i].moves[k].roll))
+           != bearOff.end()){
+             allMoves.erase(allMoves.begin() + i);
+             i--;
+             deleted = true;
+           }
+         }
+         else{
+           array_position = std::find(std::begin(virtual_checkers), std::end(virtual_checkers)
+           , allMoves[i].moves[k].point_from) - std::begin(virtual_checkers);
+           virtual_checkers[array_position] += allMoves[i].moves[k].roll;
+         }
+       }
+     }
+   }
 
 
-void sort_out_shorter_Moves(){
+
+
+void remove_shorter_Moves(){
   int current_moves, max_moves, max_iterator;
   max_moves = allMoves[0].num_moves;
   max_iterator = 0;
@@ -170,11 +190,41 @@ void sort_out_shorter_Moves(){
     if (current_moves > max_moves){
       allMoves.erase(allMoves.begin() + max_iterator);
       max_moves = current_moves;
-      max_iterator = i;
+      /* Position des mmove verringert sich um -1 , da ein voriges
+      Objekt gelöscht wurde */
+      max_iterator = i - 1;
+      i--;
+
     }
-    else allMoves.erase(allMoves.begin() + i);
+    else if (current_moves < max_moves){
+      allMoves.erase(allMoves.begin() + i);
+      i--;
+    }
   }
 }
+
+/* wenn nur ein Move gemacht werden kann,
+  muss der höhere Würfel genutzt werden, wenn möglich */
+void remove_lower_dice(){
+  int max_roll, max_iterator, current_roll;
+  max_roll = allMoves[0].moves[0].roll;
+  max_iterator = 0;
+  for (int i = 0; i < allMoves.size(); i++){
+    current_roll = allMoves[i].moves[0].roll;
+    if (current_roll > max_roll){
+      allMoves.erase(allMoves.begin() + max_iterator);
+      max_roll = current_roll;
+      max_iterator = i - 1;
+      i--;
+    }
+    else if (current_roll < max_roll){
+      allMoves.erase(allMoves.begin() + i);
+      i--;
+    }
+
+  }
+}
+
 
 //standart player -1
 int
@@ -196,12 +246,14 @@ main(int, char**) // ignore command line parameters
     init_allMoves();
     std::cout <<"\n allMoves size" << allMoves.size() << '\n';
     for (int i = 0; i < 15; i++)std::cout << "own checker position "<< checkers[i] << '\n';
-
     remove_blocked_Points();
-    std::cout << "\nreduced sort_out_blocked_Moves size " << allMoves.size() << '\n';
+    std::cout << "\nreduced by blocked_Moves: size " << allMoves.size() << '\n';
 
-    sort_out_shorter_Moves();
-    std::cout << "reduced sort_out_shorter_Moves size " << allMoves.size() << '\n';
+    remove_shorter_Moves();
+    std::cout << "reduced by shorter_Moves: size " << allMoves.size() << '\n';
+
+    if(allMoves[0].num_moves = 1) remove_lower_dice();
+    std::cout << "reduced by lower_Dice_Moves: size " << allMoves.size() << '\n';
 
     serialize_moves(CHILD_OUT_FD, &allMoves[0]);
   }
