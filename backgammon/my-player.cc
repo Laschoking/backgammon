@@ -13,7 +13,6 @@
 
  /*Globale Variablen,Listen etc.
  //////////////////////////////////////////*/
- std::vector<int> blockedPoints;
  std::vector<multi_move> allMoves;
  int checkers[15];
  game_state state, int_state;
@@ -22,12 +21,16 @@
 
  /*/////////////////////////////////////////*/
 
-/*befüllt "checkers" und "blockedPoints" */
-void init_checkers_blockedPoints(){
+/*befüllt "checkers" */
+
+void init_checkers(){
   int iteratorCheckers;
   iteratorCheckers = 0;
-  for (int p  = 0; p < 25; p++){
-    if (state.board[p] > (1)) blockedPoints.push_back(p);
+  for( int k = 0; k < (state.board[0] / 100); k++){
+    checkers[iteratorCheckers] = 0;
+    iteratorCheckers++;
+  }
+  for (int p  = 1; p < 25; p++){
     if (state.board[p] < 0){
       for(int i = 0; i < abs (state.board[p]); i++){
         checkers[iteratorCheckers] = p;
@@ -36,6 +39,8 @@ void init_checkers_blockedPoints(){
     }
   }
 }
+
+
 
 void fill_move(int array_position, int move_number, int dice){
   mmove.moves[move_number].point_from = checkers[array_position];
@@ -112,21 +117,48 @@ void init_allMoves(){
   }
 
 
-/*prüft ob zünftige Position blockiert ist */
-void sort_out_blocked_Moves(){
-  bool deleted;
-  for (int i = 0; i < allMoves.size(); i++){
-    deleted = false;
-    for (int k = 0; !deleted && k < allMoves[i].num_moves ; k++){
-      if (find(blockedPoints.begin(), blockedPoints.end(),
-      (allMoves[i].moves[k].point_from + allMoves[i].moves[k].roll))
-      != blockedPoints.end()){
-        allMoves.erase(allMoves.begin() + i);
-        deleted = true;
-      }
+  void remove_blocked_Points(){
+    std::vector<int> blockedPoints;
+    bool deleted;
+    /*prüft ob zünftige Position blockiert ist */
+    for (int l = 1; l < 25; l++){
+      if (state.board[l] > (1)) blockedPoints.push_back(l);
+    }
+    std::cout << "blockedPoints " << blockedPoints.size();
+
+    for (int i = 0; i < allMoves.size(); i++){
+      deleted = false;
+      for (int k = 0; !deleted && k < allMoves[i].num_moves; k++){
+
+        /* return 1 wenn zukünfitge Position in blockedPoints enthalten */
+         if (find(blockedPoints.begin(), blockedPoints.end(),
+         (allMoves[i].moves[k].point_from + allMoves[i].moves[k].roll))
+         != blockedPoints.end()){
+           allMoves.erase(allMoves.begin() + i);
+
+           /*beim Löschen rücken übrige objekte vor, sort_out muss selbe Stelle
+           mit "jetzt" neuem Objekt prüfen*/
+           i--;
+           deleted = true;
+         }
+       }
+     }
+  }
+
+    /*
+     soll 25- 30 blockieren, vor bear off phase .
+     geht so vmtl. aber nicht, da ja nach 1. move, plötzlich alle checker
+    im homeboard sein können, und zweiter Move = bear off
+    if (checkers[0] < 19){
+      blockedPoints.push_back(25);
+      blockedPoints.push_back(26);
+      blockedPoints.push_back(27);
+      blockedPoints.push_back(28);
+      blockedPoints.push_back(29);
+      blockedPoints.push_back(30);
     }
   }
-}
+  */
 
 
 void sort_out_shorter_Moves(){
@@ -154,29 +186,23 @@ main(int, char**) // ignore command line parameters
 
     /* Retrieve current game state*/
     if (! deserialize_state(CHILD_IN_FD, &state) ) { abort(); }
-    blockedPoints.clear();
     allMoves.clear();
+    init_checkers();
+
     /* Show the current board */
     print_state(&state);
+    std::cout << "steine auf der Bar" <<state.board[0];
 
-    init_checkers_blockedPoints();
-    std::cout << '\n' << "elemente in blockedPoints: " << blockedPoints.size() << '\n';
-    for(int i = 0; i < blockedPoints.size();i++) std::cout<< " " << blockedPoints[i];
     init_allMoves();
     std::cout <<"\n allMoves size" << allMoves.size() << '\n';
     for (int i = 0; i < 15; i++)std::cout << "own checker position "<< checkers[i] << '\n';
 
-    sort_out_blocked_Moves();
-    std::cout << "\n reduced sort_out_blocked_Moves size " << allMoves.size() << '\n';
+    remove_blocked_Points();
+    std::cout << "\nreduced sort_out_blocked_Moves size " << allMoves.size() << '\n';
 
     sort_out_shorter_Moves();
     std::cout << "reduced sort_out_shorter_Moves size " << allMoves.size() << '\n';
 
-    for (int k = 0; k < allMoves[0].num_moves ; k++){
-    //std::cout << " iterator" <<find(blockedPoints.begin(), blockedPoints.end(),
-    //  (allMoves[0].moves[k].point_from + allMoves[0].moves[k].roll));
-      std::cout << "\n neue Position" << allMoves[0].moves[k].point_from + allMoves[0].moves[k].roll;
-    }
     serialize_moves(CHILD_OUT_FD, &allMoves[0]);
   }
 
