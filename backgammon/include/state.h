@@ -119,7 +119,7 @@ set_higher_bar(signed short int * const bar_val, unsigned short int high_val)
  */
 typedef struct game_move {
   unsigned short point_from; // departure point of the checker
-  unsigned short roll;       // die roll to use for the move
+  unsigned short roll;       // dice roll to use for the move
 } game_move;
 
 
