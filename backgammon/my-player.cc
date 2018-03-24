@@ -11,6 +11,7 @@
 #include <cmath>
 #include <algorithm>
 #include <iterator>
+#include <numeric>  
 using namespace std;
  /*Globale Variablen,Listen etc.
  //////////////////////////////////////////*/
@@ -147,7 +148,7 @@ void init_allMoves(){
        }
      }
    }
-
+/* noch nicht funktiontüchtig */
 void remove_bearOff_Points(){
      /* in virtual_checkers werden die Positionen anhand vorheriger moves bestimmt */
      int virtual_checkers[15];
@@ -254,6 +255,14 @@ void print_moves(){
     }
     cout << "\n";
   }
+}
+void swap_player(){
+  if (state.player == 1){
+    reverse(begin(state.board) + 1, end(state.board) - 1);
+    accumulate(begin(state.board) + 1, end(state.board) - 1, - 1, *);
+    set_lower_bar(&state.board[0],get_higher_bar(state.board[0]));
+    set_higher_bar(&state.board[0],get_lower_bar(state.board[0]));
+  }
 
 }
 
@@ -268,6 +277,9 @@ main(int, char**) // ignore command line parameters
 
     /* Retrieve current game state*/
     if (! deserialize_state(CHILD_IN_FD, &state) ) { abort(); }
+
+    swap_player();
+
     allMoves.clear();
     init_checkers();
 
@@ -282,6 +294,7 @@ main(int, char**) // ignore command line parameters
     remove_blocked_Points();
     cout << "\nreduced by blocked_Moves: size " << allMoves.size() << '\n';
     print_moves();
+
 
     remove_bearOff_Points();
     cout << "\nreduced by bearOffMoves: size " << allMoves.size() << '\n';
@@ -305,12 +318,11 @@ main(int, char**) // ignore command line parameters
     if (allMoves.size() == 0){
       initialize_multi_move(&mmove);
       allMoves.push_back(mmove);
+    }else  if (state.player == 1){
+      for (int k = 0; k < allMoves[0].num_moves; k++ ){
+        allMoves[0].moves[k].point_from = 25 - allMoves[0].moves[k].point_from;
+      }
     }
-    /* find Mmove with lowest Postion_from */
-    for (int k = 0; k < allMoves.num_moves; k++){
-
-    }
-
     serialize_moves(CHILD_OUT_FD, &allMoves[0]);
   }
 
