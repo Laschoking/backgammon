@@ -11,10 +11,10 @@
 #include <cmath>
 #include <algorithm>
 #include <iterator>
-
+using namespace std;
  /*Globale Variablen,Listen etc.
  //////////////////////////////////////////*/
- std::vector<multi_move> allMoves;
+ vector<multi_move> allMoves;
  int checkers[15];
  game_state state, int_state;
  multi_move mmove;
@@ -122,7 +122,7 @@ void init_allMoves(){
 
 
   void remove_blocked_Points(){
-    std::vector<int> blockedPoints;
+    vector<int> blockedPoints;
     bool deleted;
     if (allMoves.size()== 0) return;
     /*prüft ob zukünftige Position blockiert ist */
@@ -134,7 +134,7 @@ void init_allMoves(){
       for (int k = 0; !deleted && k < allMoves[i].num_moves; k++){
 
         /* return 1 wenn zukünfitge Position in blockedPoints enthalten */
-         if (std::find(blockedPoints.begin(), blockedPoints.end(),
+         if (find(blockedPoints.begin(), blockedPoints.end(),
          (allMoves[i].moves[k].point_from + allMoves[i].moves[k].roll))
          != blockedPoints.end()){
            allMoves.erase(allMoves.begin() + i);
@@ -146,34 +146,40 @@ void init_allMoves(){
          }
        }
      }
+   }
+
+void remove_bearOff_Points(){
      /* in virtual_checkers werden die Positionen anhand vorheriger moves bestimmt */
      int virtual_checkers[15];
-     std::vector<int> bearOff = {25,26,27,28,29,30};
+     vector<int> bearOff = {25,26,27,28,29,30};
      int array_position;
+     bool deleted;
 
      /* bearOff positionen, die abhängig vom Vogänger-move möglich sind */
      for (int i = 0; i < allMoves.size(); i++){
-       std::copy(std::begin(checkers), std::end(checkers), std::begin(virtual_checkers));
+       copy(begin(checkers), end(checkers), begin(virtual_checkers));
        deleted = false;
        for (int k = 0; !deleted && k < allMoves[i].num_moves; k++){
 
-         if ( *std::min_element(std::begin(virtual_checkers),std::end(virtual_checkers)) < 19){
-           if (std::find(bearOff.begin(), bearOff.end(),
+         if (*min_element(begin(virtual_checkers), end(virtual_checkers)) < 19){
+           if (find(bearOff.begin(), bearOff.end(),
            (allMoves[i].moves[k].point_from + allMoves[i].moves[k].roll))
            != bearOff.end()){
              allMoves.erase(allMoves.begin() + i);
              i--;
              deleted = true;
            }
-         }
-         else{
-           array_position = std::find(std::begin(virtual_checkers), std::end(virtual_checkers)
-           , allMoves[i].moves[k].point_from) - std::begin(virtual_checkers);
-           virtual_checkers[array_position] += allMoves[i].moves[k].roll;
+           else{
+             /* find() liefert einen Pointer auf den iterator zurück */
+             array_position = find(begin(virtual_checkers), end(virtual_checkers)
+             , allMoves[i].moves[k].point_from) - begin(virtual_checkers);
+             virtual_checkers[array_position] += allMoves[i].moves[k].roll;
+           }
          }
        }
      }
    }
+
 
 
 
@@ -240,6 +246,16 @@ void remove_lower_dice(){
 
   }
 }
+void print_moves(){
+  for (int i = 0; i < allMoves.size(); i++){
+    cout << "num_moves " << allMoves[i].num_moves << " : ";
+    for (int k = 0; k < allMoves[i].num_moves; k++ ){
+      cout << " (" << allMoves[i].moves[k].point_from << " "<< allMoves[i].moves[k].roll << ") ";
+    }
+    cout << "\n";
+  }
+
+}
 
 
 //standart player -1
@@ -257,53 +273,43 @@ main(int, char**) // ignore command line parameters
 
     /* Show the current board */
     print_state(&state);
-    std::cout << "steine auf der Bar " << state.board[0];
+    cout << "steine auf der Bar " << state.board[0];
 
     init_allMoves();
-    std::cout <<"\n allMoves size " << allMoves.size() << '\n';
-    for (int i = 0; i < 15; i++)std::cout << " " << checkers[i];
-    remove_blocked_Points();
+    cout <<"\n allMoves size " << allMoves.size() << '\n';
+    for (int i = 0; i < 15; i++) cout << " " << checkers[i];
 
-    std::cout << "\nreduced by blocked_Moves: size " << allMoves.size() << '\n';
-    /*for (int i = 0; i < allMoves.size(); i++){
-      std::cout << "num_moves " << allMoves[i].num_moves << " : ";
-      for (int k = 0; k < allMoves[i].num_moves; k++ ){
-        std::cout << " (" << allMoves[i].moves[k].point_from << " "<< allMoves[i].moves[k].roll << ") ";
-      }
-      std::cout << "\n";
-    }
-*/
+    remove_blocked_Points();
+    cout << "\nreduced by blocked_Moves: size " << allMoves.size() << '\n';
+    print_moves();
+
+    remove_bearOff_Points();
+    cout << "\nreduced by bearOffMoves: size " << allMoves.size() << '\n';
+    print_moves();
+
     /* wichtig: remove_bar_priority muss zwingend vor remove_shorter_Moves aufgerufen werden */
     remove_bar_priority();
-    if (allMoves.size() == 0) initialize_multi_move(&allMoves[0]);
+    cout << "reduced by remove_bar_priority: size " << allMoves.size() << '\n';
+    print_moves();
 
-
-    std::cout << "reduced by remove_bar_priority: size " << allMoves.size() << '\n';
-    /*for (int i = 0; i < allMoves.size(); i++){
-      std::cout << "num_moves " << allMoves[i].num_moves << " : ";
-      for (int k = 0; k < allMoves[i].num_moves; k++ ){
-        std::cout << " (" << allMoves[i].moves[k].point_from << " "<< allMoves[i].moves[k].roll << ") ";
-      }
-      std::cout << "\n";
-    }
-    */
     remove_shorter_Moves();
-    if (allMoves.size() == 0) initialize_multi_move(&allMoves[0]);
+    cout << "reduced by shorter_Moves: size " << allMoves.size() << '\n';
+    print_moves();
 
 
-    //std::cout << "reduced by shorter_Moves: size " << allMoves.size() << '\n';
-    for (int i = 0; i < allMoves.size(); i++){
-      std::cout << "num_moves " << allMoves[i].num_moves << " : ";
-      for (int k = 0; k < allMoves[i].num_moves; k++ ){
-        std::cout << " (" << allMoves[i].moves[k].point_from << " "<< allMoves[i].moves[k].roll << ") ";
-      }
-      std::cout << "\n";
+
+    if(allMoves.size() > 1 && allMoves[0].num_moves == 1) remove_lower_dice();
+    cout << "reduced by lower_Dice: size " << allMoves.size() << '\n';
+    print_moves();
+
+    if (allMoves.size() == 0){
+      initialize_multi_move(&mmove);
+      allMoves.push_back(mmove);
     }
+    /* find Mmove with lowest Postion_from */
+    for (int k = 0; k < allMoves.num_moves; k++){
 
-
-    if(allMoves[0].num_moves == 1) remove_lower_dice();
-    //std::cout << "reduced by lower_Dice_Moves: size " << allMoves.size() << '\n';
-    if (allMoves.size() == 0) initialize_multi_move(&allMoves[0]);
+    }
 
     serialize_moves(CHILD_OUT_FD, &allMoves[0]);
   }
