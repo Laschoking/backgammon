@@ -87,37 +87,33 @@ void init_allMoves(){
   else{
 
       for (i = 0; i < 15; i++){
-        if ((i == 0) || checkers[i] != checkers[(i - 1)] ){
-          mmove.num_moves = 1;
-          fill_move(i, 0, 0);
+        if ((i > 0) && checkers[i] == checkers[(i - 1)] ) continue;
+        mmove.num_moves = 1;
+        fill_move(i, 0, 0);
+        allMoves.push_back(mmove);
+
+        for (k = 0; k < 15; k++){
+          if ((k > 0) && checkers[k] == checkers[(k - 1)] ) continue;
+          mmove.num_moves = 2;
+          fill_move(k, 1, 0);
           allMoves.push_back(mmove);
 
-          for (k = 0; k < 15; k++){
-            if ((k == 0) || checkers[k] != checkers[(k - 1)] ){
-              mmove.num_moves = 2;
-              fill_move(k, 1, 0);
+          for (int j = 0; j < 15; j++){
+            if ((j > 0) && checkers[j] == checkers[(j - 1)] ) continue;
+            mmove.num_moves = 3;
+            fill_move(j, 2, 0);
+            allMoves.push_back(mmove);
+
+            for (int r = 0; r < 15; r++){
+              if ((r > 0) && (checkers[r] == checkers[(r - 1)])) continue;
+              mmove.num_moves = 4;
+              fill_move(r, 3 ,0);
               allMoves.push_back(mmove);
-
-              for (int j = 0; j < 15; j++){
-                if ((j == 0) || checkers[j] != checkers[(j - 1)] ){
-                  mmove.num_moves = 3;
-                  fill_move(j, 2, 0);
-                  allMoves.push_back(mmove);
-
-                  for (int r = 0; r < 15; r++){
-                    if ((r == 0) || (checkers[r] != checkers[(r - 1)])){
-                      mmove.num_moves = 4;
-                      fill_move(r, 3 ,0);
-                      allMoves.push_back(mmove);
-                      reset_checkers(r,0);
-                    }
-                  }
-                }
-                reset_checkers(j,0);
-              }
+              reset_checkers(r,0);
             }
-            reset_checkers(k,0);
+            reset_checkers(j,0);
           }
+          reset_checkers(k,0);
         }
         reset_checkers(i,0);
       }
@@ -128,11 +124,11 @@ void init_allMoves(){
   void remove_blocked_Points(){
     std::vector<int> blockedPoints;
     bool deleted;
+    if (allMoves.size()== 0) return;
     /*prüft ob zukünftige Position blockiert ist */
     for (int l = 1; l < 25; l++){
       if (state.board[l] > (1)) blockedPoints.push_back(l);
     }
-    std::cout << "blockedPoints " << blockedPoints.size();
     for (int i = 0; i < allMoves.size(); i++){
       deleted = false;
       for (int k = 0; !deleted && k < allMoves[i].num_moves; k++){
@@ -184,6 +180,8 @@ void init_allMoves(){
 
 void remove_shorter_Moves(){
   int current_moves, max_moves, max_iterator;
+  if (allMoves.size()== 0) return;
+
   max_moves = allMoves[0].num_moves;
   max_iterator = 0;
   for (int i = 1; i < allMoves.size(); i++){
@@ -204,9 +202,26 @@ void remove_shorter_Moves(){
   }
 }
 
+void remove_bar_priority(){
+  int bar, max_roll;
+  if (state.dice[0] == state.dice[1]) max_roll = 4;
+  else max_roll = 2;
+  bar = get_higher_bar(state.board[0]);
+  for (int k = 0; (k < max_roll) && (k < bar); k++){
+    for (int i = 0; i < allMoves.size(); i++){
+      if (allMoves[i].moves[k].point_from != 0){
+        allMoves.erase(allMoves.begin() + i);
+        i--;
+      }
+    }
+  }
+}
+
 /* wenn nur ein Move gemacht werden kann,
   muss der höhere Würfel genutzt werden, wenn möglich */
 void remove_lower_dice(){
+  if (allMoves.size()== 0) return;
+
   int max_roll, max_iterator, current_roll;
   max_roll = allMoves[0].moves[0].roll;
   max_iterator = 0;
@@ -242,26 +257,53 @@ main(int, char**) // ignore command line parameters
 
     /* Show the current board */
     print_state(&state);
-    std::cout << "steine auf der Bar " <<state.board[0];
+    std::cout << "steine auf der Bar " << state.board[0];
 
     init_allMoves();
     std::cout <<"\n allMoves size " << allMoves.size() << '\n';
     for (int i = 0; i < 15; i++)std::cout << " " << checkers[i];
     remove_blocked_Points();
-    std::cout << "\nreduced by blocked_Moves: size " << allMoves.size() << '\n';
 
-    remove_shorter_Moves();
-    std::cout << "reduced by shorter_Moves: size " << allMoves.size() << '\n';
-    for (int i = 0; i< allMoves.size(); i++){
+    std::cout << "\nreduced by blocked_Moves: size " << allMoves.size() << '\n';
+    /*for (int i = 0; i < allMoves.size(); i++){
       std::cout << "num_moves " << allMoves[i].num_moves << " : ";
       for (int k = 0; k < allMoves[i].num_moves; k++ ){
         std::cout << " (" << allMoves[i].moves[k].point_from << " "<< allMoves[i].moves[k].roll << ") ";
       }
       std::cout << "\n";
     }
-    if(allMoves[0].num_moves = 1) remove_lower_dice();
-    std::cout << "reduced by lower_Dice_Moves: size " << allMoves.size() << '\n';
-    for (int i = 0; i < 15; i++)std::cout << " " << checkers[i];
+*/
+    /* wichtig: remove_bar_priority muss zwingend vor remove_shorter_Moves aufgerufen werden */
+    remove_bar_priority();
+    if (allMoves.size() == 0) initialize_multi_move(&allMoves[0]);
+
+
+    std::cout << "reduced by remove_bar_priority: size " << allMoves.size() << '\n';
+    /*for (int i = 0; i < allMoves.size(); i++){
+      std::cout << "num_moves " << allMoves[i].num_moves << " : ";
+      for (int k = 0; k < allMoves[i].num_moves; k++ ){
+        std::cout << " (" << allMoves[i].moves[k].point_from << " "<< allMoves[i].moves[k].roll << ") ";
+      }
+      std::cout << "\n";
+    }
+    */
+    remove_shorter_Moves();
+    if (allMoves.size() == 0) initialize_multi_move(&allMoves[0]);
+
+
+    //std::cout << "reduced by shorter_Moves: size " << allMoves.size() << '\n';
+    for (int i = 0; i < allMoves.size(); i++){
+      std::cout << "num_moves " << allMoves[i].num_moves << " : ";
+      for (int k = 0; k < allMoves[i].num_moves; k++ ){
+        std::cout << " (" << allMoves[i].moves[k].point_from << " "<< allMoves[i].moves[k].roll << ") ";
+      }
+      std::cout << "\n";
+    }
+
+
+    if(allMoves[0].num_moves == 1) remove_lower_dice();
+    //std::cout << "reduced by lower_Dice_Moves: size " << allMoves.size() << '\n';
+    if (allMoves.size() == 0) initialize_multi_move(&allMoves[0]);
 
     serialize_moves(CHILD_OUT_FD, &allMoves[0]);
   }
