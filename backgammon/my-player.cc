@@ -151,7 +151,7 @@ void init_allMoves(){
        }
      }
    }
-/* noch nicht funktiontüchtig */
+
 void remove_bearOff_Points(){
      /* in virtual_checkers werden die Positionen anhand vorheriger moves bestimmt */
      int virtual_checkers[15];
@@ -228,7 +228,7 @@ void remove_bar_priority(){
   bar = get_higher_bar(state.board[0]);
   for (int k = 0; (k < max_roll) && (k < bar); k++){
     for (int i = 0; i < allMoves.size(); i++){
-      if (allMoves[i].moves[k].point_from != 0){
+      if (k < allMoves[i].num_moves  && allMoves[i].moves[k].point_from != 0){
         allMoves.erase(allMoves.begin() + i);
         i--;
       }
@@ -289,32 +289,42 @@ void swap_player(){
 
 int use_lowest_move(){
   int lowestMove;
-  bool deleted;
   vector<int> positionIterator;
   for (int i = 0 ; i < allMoves.size(); i++){
     positionIterator.push_back(i);
   }
 
   for (int k = 0; (allMoves.size() > 0) && (k < allMoves[0].num_moves); k++ ){
-    deleted = false;
     lowestMove = 0;
+    cout << "\ndurchläufe move " << k;
 
-    for (int p = 1; !deleted && p < positionIterator.size(); p++){
-      if (allMoves[p].moves[k].point_from < allMoves[lowestMove].moves[k].point_from){
+
+    for (int p = 1; p < positionIterator.size(); p++){
+
+      if (allMoves[positionIterator[p]].moves[k].point_from > allMoves[positionIterator[lowestMove]].moves[k].point_from){
         positionIterator.erase(positionIterator.begin() + p);
         p--;
-        deleted = true;
 
-      }else if (allMoves[p].moves[k].point_from > allMoves[lowestMove].moves[k].point_from){
-        positionIterator.erase(positionIterator.begin() + lowestMove);
-        lowestMove = p - 1;
-        p--;
-        deleted = true;
-
+      }else if (allMoves[positionIterator[p]].moves[k].point_from <
+         allMoves[positionIterator[lowestMove]].moves[k].point_from){
+        /* alle Objekte löschen, derén Position größer war */
+        cout << "\nlösche element\n";
+        for( int m = p - 1; m >= lowestMove; m--){
+          cout << " " << m;
+          positionIterator.erase(positionIterator.begin() + m);
+          p--;
+        }
+        lowestMove = p;
       }
+      /*cout << "\npositionIterator:";
+      for (int l = 0; l < positionIterator.size(); l++){
+        cout << " " << positionIterator[l];
+      }
+      */
     }
+
   }
-  return lowestMove;
+  return positionIterator[lowestMove];
 }
 
 //        iter_swap(allMoves.begin(), allMoves.begin() + i);
@@ -345,30 +355,29 @@ main(int, char**) // ignore command line parameters
 
     remove_blocked_Points();
     cout << "\nreduced by blocked_Moves: size " << allMoves.size() << '\n';
-    print_moves();
+    //print_moves();
 
 
     remove_bearOff_Points();
     cout << "\nreduced by bearOffMoves: size " << allMoves.size() << '\n';
-    print_moves();
+    //print_moves();
 
     /* wichtig: remove_bar_priority muss zwingend vor remove_shorter_Moves aufgerufen werden */
     remove_bar_priority();
     cout << "reduced by remove_bar_priority: size " << allMoves.size() << '\n';
-    print_moves();
+    //print_moves();
 
     remove_shorter_Moves();
     cout << "reduced by shorter_Moves: size " << allMoves.size() << '\n';
-    print_moves();
+    //print_moves();
 
 
 
     if(allMoves.size() > 1 && allMoves[0].num_moves == 1) remove_lower_dice();
     cout << "reduced by lower_Dice: size " << allMoves.size() << '\n';
-    print_moves();
-    int lowestMove = use_lowest_move();
+    int lowestMove; 
+    if (allMoves.size() > 1) lowestMove = use_lowest_move();
     cout << "lowestMove , tausch auf minimum \n";
-    print_moves();
 
     if (allMoves.size() == 0){
       initialize_multi_move(&mmove);
@@ -376,8 +385,8 @@ main(int, char**) // ignore command line parameters
       lowestMove = 0;
 
     }else  if (state.player == 1){
-      for (int k = 0; k < allMoves[0].num_moves; k++ ){
-        allMoves[0].moves[k].point_from = (25 - allMoves[0].moves[k].point_from) % 25;
+      for (int k = 0; k < allMoves[lowestMove].num_moves; k++ ){
+        allMoves[lowestMove].moves[k].point_from = (25 - allMoves[lowestMove].moves[k].point_from) % 25;
       }
     }
     serialize_moves(CHILD_OUT_FD, &allMoves[lowestMove]);
