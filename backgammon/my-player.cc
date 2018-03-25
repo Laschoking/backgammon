@@ -11,7 +11,7 @@
 #include <cmath>
 #include <algorithm>
 #include <iterator>
-#include <numeric>  
+#include <numeric>
 using namespace std;
  /*Globale Variablen,Listen etc.
  //////////////////////////////////////////*/
@@ -33,8 +33,11 @@ void init_checkers(){
     checkers[iteratorCheckers] = 0;
     iteratorCheckers++;
   }
-  for (int p  = 1; p < 25; p++){
-    if (state.board[p] < 0){
+  for (int p  = 1; p < 25 || iteratorCheckers < 15; p++){
+    if( p > 24 ){
+      checkers[iteratorCheckers] = 26;
+      iteratorCheckers++;
+    }else if (state.board[p] < 0){
       for(int i = 0; i < abs (state.board[p]); i++){
         checkers[iteratorCheckers] = p;
         iteratorCheckers ++;
@@ -162,6 +165,15 @@ void remove_bearOff_Points(){
        deleted = false;
        for (int k = 0; !deleted && k < allMoves[i].num_moves; k++){
 
+         if (allMoves[i].moves[k].point_from > 24){
+           allMoves.erase(allMoves.begin() + i);
+           i--;
+           deleted = true;
+           continue;
+         }
+
+
+
          if (*min_element(begin(virtual_checkers), end(virtual_checkers)) < 19){
            if (find(bearOff.begin(), bearOff.end(),
            (allMoves[i].moves[k].point_from + allMoves[i].moves[k].roll))
@@ -247,6 +259,8 @@ void remove_lower_dice(){
 
   }
 }
+
+
 void print_moves(){
   for (int i = 0; i < allMoves.size(); i++){
     cout << "num_moves " << allMoves[i].num_moves << " : ";
@@ -256,18 +270,56 @@ void print_moves(){
     cout << "\n";
   }
 }
+
+
 void swap_player(){
   if (state.player == 1){
+    int oldBar;
+    oldBar = state.board[0];
     reverse(begin(state.board) + 1, end(state.board) - 1);
-    accumulate(begin(state.board) + 1, end(state.board) - 1, - 1, *);
-    set_lower_bar(&state.board[0],get_higher_bar(state.board[0]));
-    set_higher_bar(&state.board[0],get_lower_bar(state.board[0]));
+    for ( int n = 1; n < 25; n++) state.board[n] *= -1;
+    cout << "\nbarvorher " << state.board[0];
+    set_lower_bar(&state.board[0],get_higher_bar(oldBar));
+    cout << "\nbar set_lower_bar" << state.board[0];
+    set_higher_bar(&state.board[0],get_lower_bar(oldBar));
+    cout << "\nbar set_higher_bar" << state.board[0];
   }
-
 }
 
 
-//standart player -1
+int use_lowest_move(){
+  int lowestMove;
+  bool deleted;
+  vector<int> positionIterator;
+  for (int i = 0 ; i < allMoves.size(); i++){
+    positionIterator.push_back(i);
+  }
+
+  for (int k = 0; (allMoves.size() > 0) && (k < allMoves[0].num_moves); k++ ){
+    deleted = false;
+    lowestMove = 0;
+
+    for (int p = 1; !deleted && p < positionIterator.size(); p++){
+      if (allMoves[p].moves[k].point_from < allMoves[lowestMove].moves[k].point_from){
+        positionIterator.erase(positionIterator.begin() + p);
+        p--;
+        deleted = true;
+
+      }else if (allMoves[p].moves[k].point_from > allMoves[lowestMove].moves[k].point_from){
+        positionIterator.erase(positionIterator.begin() + lowestMove);
+        lowestMove = p - 1;
+        p--;
+        deleted = true;
+
+      }
+    }
+  }
+  return lowestMove;
+}
+
+//        iter_swap(allMoves.begin(), allMoves.begin() + i);
+
+
 int
 main(int, char**) // ignore command line parameters
 {
@@ -314,16 +366,21 @@ main(int, char**) // ignore command line parameters
     if(allMoves.size() > 1 && allMoves[0].num_moves == 1) remove_lower_dice();
     cout << "reduced by lower_Dice: size " << allMoves.size() << '\n';
     print_moves();
+    int lowestMove = use_lowest_move();
+    cout << "lowestMove , tausch auf minimum \n";
+    print_moves();
 
     if (allMoves.size() == 0){
       initialize_multi_move(&mmove);
       allMoves.push_back(mmove);
+      lowestMove = 0;
+
     }else  if (state.player == 1){
       for (int k = 0; k < allMoves[0].num_moves; k++ ){
-        allMoves[0].moves[k].point_from = 25 - allMoves[0].moves[k].point_from;
+        allMoves[0].moves[k].point_from = (25 - allMoves[0].moves[k].point_from) % 25;
       }
     }
-    serialize_moves(CHILD_OUT_FD, &allMoves[0]);
+    serialize_moves(CHILD_OUT_FD, &allMoves[lowestMove]);
   }
 
 
