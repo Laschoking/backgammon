@@ -198,23 +198,23 @@ void remove_bearOff_Points(){
 
 
 void remove_shorter_Moves(){
-  int current_moves, max_moves, max_iterator;
-  if (allMoves.size()== 0) return;
-
-  max_moves = allMoves[0].num_moves;
+  int  max_iterator;
+  //if (allMoves.size()== 0) return;
   max_iterator = 0;
   for (int i = 1; i < allMoves.size(); i++){
-    current_moves = allMoves[i].num_moves;
-    if (current_moves > max_moves){
-      allMoves.erase(allMoves.begin() + max_iterator);
-      max_moves = current_moves;
-      /* Position des mmove verringert sich um -1 , da ein voriges
-      Objekt gelöscht wurde */
-      max_iterator = i - 1;
-      i--;
+    if (allMoves[i].num_moves > allMoves[max_iterator].num_moves){
+
+      for( int m = i - 1; m >= max_iterator; m--){
+        allMoves.erase(allMoves.begin() + m);
+        i--;
+
+      }
+        /* Position des mmove verringert sich um -1 , da ein voriges
+        Objekt gelöscht wurde */
+        max_iterator = i;
 
     }
-    else if (current_moves < max_moves){
+    else if (allMoves[i].num_moves < allMoves[max_iterator].num_moves){
       allMoves.erase(allMoves.begin() + i);
       i--;
     }
@@ -375,14 +375,13 @@ main(int, char**) // ignore command line parameters
 
     if(allMoves.size() > 1 && allMoves[0].num_moves == 1) remove_lower_dice();
     cout << "reduced by lower_Dice: size " << allMoves.size() << '\n';
-    int lowestMove; 
+    int lowestMove = 0;
     if (allMoves.size() > 1) lowestMove = use_lowest_move();
     cout << "lowestMove , tausch auf minimum \n";
 
     if (allMoves.size() == 0){
       initialize_multi_move(&mmove);
       allMoves.push_back(mmove);
-      lowestMove = 0;
 
     }else  if (state.player == 1){
       for (int k = 0; k < allMoves[lowestMove].num_moves; k++ ){
