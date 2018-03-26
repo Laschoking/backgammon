@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <iterator>
 #include <numeric>
+#include <time.h>
 using namespace std;
  /*Globale Variablen,Listen etc.
  //////////////////////////////////////////*/
@@ -130,10 +131,19 @@ vector<int> find_blocked_Points(){
 
   /*prüft ob zukünftige Position blockiert ist */
   for (int l = 1; l < 25; l++){
-    if (state.board[l] > (1)) blockedPoints.push_back(l);
+    if (state.board[l] > 1) blockedPoints.push_back(l);
   }
   return blockedPoints;
 }
+
+vector<int> find_hit_Points(){
+  vector<int> hitPoints;
+  for (int l = 1; l < 25; l++){
+    if (state.board[l] == 1) hitPoints.push_back(l);
+  }
+  return hitPoints;
+  }
+
 
   void remove_blocked_Points(){
     vector<int> blockedPoints;
@@ -305,61 +315,34 @@ void swap_player(){
     oldBar = state.board[0];
     reverse(begin(state.board) + 1, end(state.board) - 1);
     for ( int n = 1; n < 25; n++) state.board[n] *= -1;
-    cout << "\nbarvorher " << state.board[0];
+    //cout << "\nbarvorher " << state.board[0];
     set_lower_bar(&state.board[0],get_higher_bar(oldBar));
-    cout << "\nbar set_lower_bar" << state.board[0];
+    //cout << "\nbar set_lower_bar" << state.board[0];
     set_higher_bar(&state.board[0],get_lower_bar(oldBar));
-    cout << "\nbar set_higher_bar" << state.board[0];
+    //cout << "\nbar set_higher_bar" << state.board[0];
   }
 }
 
 
-int use_lowest_move(){
-  int lowestMove;
-  vector<int> positionIterator;
-  for (int i = 0 ; i < allMoves.size(); i++){
-    positionIterator.push_back(i);
-  }
-
-  for (int k = 0; (allMoves.size() > 0) && (k < allMoves[0].num_moves); k++ ){
-    lowestMove = 0;
-    cout << "\ndurchläufe move " << k;
-
-
-    for (int p = 1; p < positionIterator.size(); p++){
-
-      if (allMoves[positionIterator[p]].moves[k].point_from > allMoves[positionIterator[lowestMove]].moves[k].point_from){
-        positionIterator.erase(positionIterator.begin() + p);
-        p--;
-
-      }else if (allMoves[positionIterator[p]].moves[k].point_from <
-         allMoves[positionIterator[lowestMove]].moves[k].point_from){
-        /* alle Objekte löschen, deren Position größer war */
-        cout << "\nlösche element\n";
-        for( int m = p - 1; m >= lowestMove; m--){
-          cout << " " << m;
-          positionIterator.erase(positionIterator.begin() + m);
-          p--;
-        }
-        lowestMove = p;
-      }
-      /*cout << "\npositionIterator:";
-      for (int l = 0; l < positionIterator.size(); l++){
-        cout << " " << positionIterator[l];
-      }
-      */
-    }
-
-  }
-  return positionIterator[lowestMove];
-}
-
-//        iter_swap(allMoves.begin(), allMoves.begin() + i);
+int hit_them_where_you_can(){
+  vector<int> hitPoints = find_hit_Points();
+  int hitPosition;
+  for (int i = 0; i < allMoves.size();i++){
+    for (int k = 0;  (k < allMoves[0].num_moves); k++ ){
+      if (find(hitPoints.begin(), hitPoints.end(),
+       allMoves[i].moves[k].point_from +  allMoves[i].moves[k].roll) != hitPoints.end()){
+         return i;
+       }
+     }
+   }
+   return 0;
+ }
 
 
 int
 main(int, char**) // ignore command line parameters
 {
+  srand(time(NULL));
   while(true){
 
     initialize_multi_move(&mmove);
@@ -375,18 +358,18 @@ main(int, char**) // ignore command line parameters
 
     /* Show the current board */
     //print_state(&state);
-    cout << "steine auf der Bar " << state.board[0];
+    //cout << "steine auf der Bar " << state.board[0];
 
     init_allMoves();
     //cout <<"\n allMoves size " << allMoves.size() << '\n';
-    for (int i = 0; i < 15; i++) cout << " " << checkers[i];
+    //for (int i = 0; i < 15; i++) cout << " " << checkers[i];
 
     remove_blocked_Points();
     //cout << "\nreduced by blocked_Moves: size " << allMoves.size() << '\n';
     //print_moves();
 
     remove_bearOff_Points();
-    cout << "\nreduced by bearOffMoves: size " << allMoves.size() << '\n';
+    //cout << "\nreduced by bearOffMoves: size " << allMoves.size() << '\n';
     //print_moves();
 
     /* wichtig: remove_bar_priority muss zwingend vor remove_shorter_Moves aufgerufen werden */
@@ -401,21 +384,20 @@ main(int, char**) // ignore command line parameters
 
 
     if(allMoves.size() > 1 && allMoves[0].num_moves == 1) remove_lower_dice();
-    //cout << "reduced by lower_Dice: size " << allMoves.size() << '\n';
-    int lowestMove = 0;
-    if (allMoves.size() > 1) lowestMove = use_lowest_move();
-    //cout << "lowestMove , tausch auf minimum \n";
+
+    int bestMove;
+    if (allMoves.size() > 1) bestMove = hit_them_where_you_can();
 
     if (allMoves.size() == 0){
       initialize_multi_move(&mmove);
       allMoves.push_back(mmove);
-
+      bestMove = 0;
     }else  if (state.player == 1){
-      for (int k = 0; k < allMoves[lowestMove].num_moves; k++ ){
-        allMoves[lowestMove].moves[k].point_from = (25 - allMoves[lowestMove].moves[k].point_from) % 25;
+      for (int k = 0; k < allMoves[bestMove].num_moves; k++ ){
+        allMoves[bestMove].moves[k].point_from = (25 - allMoves[bestMove].moves[k].point_from) % 25;
       }
     }
-    serialize_moves(CHILD_OUT_FD, &allMoves[lowestMove]);
+    serialize_moves(CHILD_OUT_FD, &allMoves[bestMove]);
   }
 
 
