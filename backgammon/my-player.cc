@@ -323,21 +323,36 @@ void swap_player(){
   }
 }
 
+int use_lowest_move(){
+  int lowestMove;
+  vector<int> positionIterator;
+  for (int i = 0 ; i < allMoves.size(); i++){
+    positionIterator.push_back(i);
+  }
+  for (int k = 0; (allMoves.size() > 0) && (k < allMoves[0].num_moves); k++ ){
+    lowestMove = 0;
+    cout << "\ndurchläufe move " << k;
+    for (int p = 1; p < positionIterator.size(); p++){
 
-int hit_them_where_you_can(){
-  vector<int> hitPoints = find_hit_Points();
-  for (int i = 1; hitPoints.size() > 0 && i < allMoves.size(); i++){
-    for (int k = 0;  (k < allMoves[0].num_moves); k++ ){
+      if (allMoves[positionIterator[p]].moves[k].point_from > allMoves[positionIterator[lowestMove]].moves[k].point_from){
+        positionIterator.erase(positionIterator.begin() + p);
+        p--;
 
-      if (find(hitPoints.begin(), hitPoints.end(),
-       allMoves[i].moves[k].point_from +  allMoves[i].moves[k].roll) != hitPoints.end()){
-         return i;
-       }
-     }
-   }
-   return 0;
- }
-
+      }else if (allMoves[positionIterator[p]].moves[k].point_from <
+         allMoves[positionIterator[lowestMove]].moves[k].point_from){
+        /* alle Objekte löschen, deren Position größer war */
+        cout << "\nlösche element\n";
+        for( int m = p - 1; m >= lowestMove; m--){
+          cout << " " << m;
+          positionIterator.erase(positionIterator.begin() + m);
+          p--;
+        }
+        lowestMove = p;
+      }
+    }
+  }
+  return positionIterator[lowestMove];
+}
 
 int
 main(int, char**) // ignore command line parameters
@@ -387,14 +402,13 @@ main(int, char**) // ignore command line parameters
     //cout << "\n before bestMove ";
 
     int bestMove = 0;
-    if (allMoves.size() > 1) bestMove = hit_them_where_you_can();
+    if (allMoves.size() > 1) bestMove = use_lowest_move();
     //cout << "\n after bestMove " << bestMove;
     if (allMoves.size() == 0){
       initialize_multi_move(&mmove);
       allMoves.push_back(mmove);
       bestMove = 0;
     }else  if (state.player == 1){
-      bestMove = rand() % allMoves.size();
       for (int k = 0; k < allMoves[bestMove].num_moves; k++ ){
         allMoves[bestMove].moves[k].point_from = (25 - allMoves[bestMove].moves[k].point_from) % 25;
       }
