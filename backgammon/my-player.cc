@@ -125,14 +125,22 @@ void init_allMoves(){
   }
 
 
+vector<int> find_blocked_Points(){
+  vector<int> blockedPoints;
+
+  /*prüft ob zukünftige Position blockiert ist */
+  for (int l = 1; l < 25; l++){
+    if (state.board[l] > (1)) blockedPoints.push_back(l);
+  }
+  return blockedPoints;
+}
+
   void remove_blocked_Points(){
     vector<int> blockedPoints;
     bool deleted;
     if (allMoves.size()== 0) return;
-    /*prüft ob zukünftige Position blockiert ist */
-    for (int l = 1; l < 25; l++){
-      if (state.board[l] > (1)) blockedPoints.push_back(l);
-    }
+    blockedPoints = find_blocked_Points();
+
     for (int i = 0; i < allMoves.size(); i++){
       deleted = false;
       for (int k = 0; !deleted && k < allMoves[i].num_moves; k++){
@@ -157,14 +165,13 @@ void remove_bearOff_Points(){
      int virtual_checkers[15];
      vector<int> bearOff = {25,26,27,28,29,30};
      int array_position;
-     bool deleted;
+     bool posBlocked ,deleted;
 
-     /* bearOff positionen, die abhängig vom Vogänger-move möglich sind */
      for (int i = 0; i < allMoves.size(); i++){
        copy(begin(checkers), end(checkers), begin(virtual_checkers));
        deleted = false;
        for (int k = 0; !deleted && k < allMoves[i].num_moves; k++){
-
+         /* delete checker move > 24 */
          if (allMoves[i].moves[k].point_from > 24){
            allMoves.erase(allMoves.begin() + i);
            i--;
@@ -173,7 +180,7 @@ void remove_bearOff_Points(){
          }
 
 
-
+         /* sperren ab 24 ,weil min(virtual_checkers) < 19 */
          if (*min_element(begin(virtual_checkers), end(virtual_checkers)) < 19){
            if (find(bearOff.begin(), bearOff.end(),
            (allMoves[i].moves[k].point_from + allMoves[i].moves[k].roll))
@@ -182,16 +189,40 @@ void remove_bearOff_Points(){
              i--;
              deleted = true;
            }
-           else{
-             /* find() liefert einen Pointer auf den iterator zurück */
-             array_position = find(begin(virtual_checkers), end(virtual_checkers)
-             , allMoves[i].moves[k].point_from) - begin(virtual_checkers);
-             virtual_checkers[array_position] += allMoves[i].moves[k].roll;
+         }
+         else{
+           vector<int> blockedPoints = find_blocked_Points();
+           posBlocked = false;
+           int min;
+
+           for( int d = 0; d < 2; d++){
+             min = min_element(begin(virtual_checkers), end(virtual_checkers)) - begin(virtual_checkers);
+             if (find(blockedPoints.begin(),blockedPoints.end(),
+             allMoves[min].moves[k].point_from + state.dice[d]) != blockedPoints.end()){
+               posBlocked = true;
+             }
+           }
+
+           if (!posBlocked){
+            // cout << "\n!posBlocked, unbegrenztes Abtragen ";
+           /* unbegrenztes Abtragen, lediglich virtual_checkers updaten */
+           /* find() liefert einen Pointer auf den iterator zurück */
+           array_position = find(begin(virtual_checkers), end(virtual_checkers)
+           , allMoves[i].moves[k].point_from) - begin(virtual_checkers);
+           virtual_checkers[array_position] += allMoves[i].moves[k].roll;
+         }else{
+           //cout << "\n posBlocked, ab 25 begrenztes Abtragen ";
+           /* sperren ab 25, direkte moves zur 25 sind erlaubt */
+           if ( allMoves[i].moves[k].point_from + allMoves[i].moves[k].roll > 25){
+             allMoves.erase(allMoves.begin() + i);
+             i--;
+             deleted = true;
            }
          }
        }
      }
    }
+ }
 
 
 
@@ -355,12 +386,12 @@ main(int, char**) // ignore command line parameters
 
     remove_blocked_Points();
     cout << "\nreduced by blocked_Moves: size " << allMoves.size() << '\n';
-    //print_moves();
+    print_moves();
 
 
     remove_bearOff_Points();
     cout << "\nreduced by bearOffMoves: size " << allMoves.size() << '\n';
-    //print_moves();
+    print_moves();
 
     /* wichtig: remove_bar_priority muss zwingend vor remove_shorter_Moves aufgerufen werden */
     remove_bar_priority();
@@ -369,7 +400,7 @@ main(int, char**) // ignore command line parameters
 
     remove_shorter_Moves();
     cout << "reduced by shorter_Moves: size " << allMoves.size() << '\n';
-    //print_moves();
+    print_moves();
 
 
 
