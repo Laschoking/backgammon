@@ -135,10 +135,9 @@ vector<int> find_blocked_Points(){
   return blockedPoints;
 }
 
-  bool remove_blocked_Points(){
+  void remove_blocked_Points(){
     vector<int> blockedPoints;
-    bool deleted, posBlocked;
-    posBlocked = false;
+    bool deleted;
     blockedPoints = find_blocked_Points();
 
     for (int i = 0; i < allMoves.size(); i++){
@@ -155,14 +154,12 @@ vector<int> find_blocked_Points(){
            mit "jetzt" neuem Objekt prüfen*/
            i--;
            deleted = true;
-           posBlocked = true;
          }
        }
      }
-     return posBlocked;
    }
 
-void remove_bearOff_Points(bool posBlocked){
+void remove_bearOff_Points(){
      int virtual_checkers[15];
      vector<int> bearOff = {25,26,27,28,29,30};
      int arrayPosition, minElement;
@@ -204,7 +201,7 @@ void remove_bearOff_Points(bool posBlocked){
          else{
            if (allMoves[i].moves[k].point_from > minElement){
              /* sperren ab 25, direkte moves zur 25 sind erlaubt */
-             cout << "\n posBlocked, ab 25 begrenztes Abtragen ";
+             //cout << "\n posBlocked, ab 25 begrenztes Abtragen ";
              if ( allMoves[i].moves[k].point_from + allMoves[i].moves[k].roll > 25){
                allMoves.erase(allMoves.begin() + i);
                i--;
@@ -213,7 +210,7 @@ void remove_bearOff_Points(bool posBlocked){
            }else{
              /* unbegrenztes Abtragen, wenn keine gegnerische Blockierung;
              lediglich virtual_checkers updaten */
-             cout << "\n not Blocked, unbegrenztes Abtragen ";
+             //cout << "\n not Blocked, unbegrenztes Abtragen ";
              arrayPosition = find(begin(virtual_checkers), end(virtual_checkers)
              , allMoves[i].moves[k].point_from) - begin(virtual_checkers);
              virtual_checkers[arrayPosition] += allMoves[i].moves[k].roll;
@@ -230,7 +227,6 @@ void remove_bearOff_Points(bool posBlocked){
 
 void remove_shorter_Moves(){
   int  max_iterator;
-  //if (allMoves.size()== 0) return;
   max_iterator = 0;
   for (int i = 1; i < allMoves.size(); i++){
     if (allMoves[i].num_moves > allMoves[max_iterator].num_moves){
@@ -364,7 +360,6 @@ int use_lowest_move(){
 int
 main(int, char**) // ignore command line parameters
 {
-  bool posBlocked;
   while(true){
 
     initialize_multi_move(&mmove);
@@ -383,22 +378,20 @@ main(int, char**) // ignore command line parameters
     cout << "steine auf der Bar " << state.board[0];
 
     init_allMoves();
-    cout <<"\n allMoves size " << allMoves.size() << '\n';
+    //cout <<"\n allMoves size " << allMoves.size() << '\n';
     for (int i = 0; i < 15; i++) cout << " " << checkers[i];
 
-    /* sobald gegnerische Steine blockieren, liefert posBlocked true */
-    posBlocked = remove_blocked_Points();
-    cout << "\nreduced by blocked_Moves: size " << allMoves.size() << '\n';
+    remove_blocked_Points();
+    //cout << "\nreduced by blocked_Moves: size " << allMoves.size() << '\n';
     //print_moves();
 
-    cout << "\nposBlocked ? "<< posBlocked;
-    remove_bearOff_Points(posBlocked);
-    //cout << "\nreduced by bearOffMoves: size " << allMoves.size() << '\n';
+    remove_bearOff_Points();
+    cout << "\nreduced by bearOffMoves: size " << allMoves.size() << '\n';
     //print_moves();
 
     /* wichtig: remove_bar_priority muss zwingend vor remove_shorter_Moves aufgerufen werden */
     remove_bar_priority();
-    cout << "reduced by remove_bar_priority: size " << allMoves.size() << '\n';
+    //cout << "reduced by remove_bar_priority: size " << allMoves.size() << '\n';
     //print_moves();
 
     remove_shorter_Moves();
@@ -408,7 +401,7 @@ main(int, char**) // ignore command line parameters
 
 
     if(allMoves.size() > 1 && allMoves[0].num_moves == 1) remove_lower_dice();
-    cout << "reduced by lower_Dice: size " << allMoves.size() << '\n';
+    //cout << "reduced by lower_Dice: size " << allMoves.size() << '\n';
     int lowestMove = 0;
     if (allMoves.size() > 1) lowestMove = use_lowest_move();
     //cout << "lowestMove , tausch auf minimum \n";
