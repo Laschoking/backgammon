@@ -48,19 +48,19 @@ void init_checkers(){
 
 
 
-void fill_move(int array_position, int move_number, int dice){
-  mmove.moves[move_number].point_from = checkers[array_position];
+void fill_move(int arrayPosition, int move_number, int dice){
+  mmove.moves[move_number].point_from = checkers[arrayPosition];
   mmove.moves[move_number].roll = state.dice[dice];
    //"neue" Position berechnen für folgenden Spielzug
-  checkers[array_position] += state.dice[dice];
+  checkers[arrayPosition] += state.dice[dice];
   }
 
 /* Nach Verwendung eines Würfels muss intern eine neue Position des bewegten Steines
 angelegt werden, damit Folgezug korrekt.
 Hier wird Position, auf die letzte Änderung zurückgesetzt*/
 
-void reset_checkers(int array_position, int dice){
-  checkers[array_position] -= state.dice[dice];
+void reset_checkers(int arrayPosition, int dice){
+  checkers[arrayPosition] -= state.dice[dice];
 }
 
 /* auch ungültige Züge können vorerst in allMoves enthalten sein*/
@@ -135,10 +135,10 @@ vector<int> find_blocked_Points(){
   return blockedPoints;
 }
 
-  void remove_blocked_Points(){
+  bool remove_blocked_Points(){
     vector<int> blockedPoints;
-    bool deleted;
-    if (allMoves.size()== 0) return;
+    bool deleted, posBlocked;
+    posBlocked = false;
     blockedPoints = find_blocked_Points();
 
     for (int i = 0; i < allMoves.size(); i++){
@@ -155,74 +155,74 @@ vector<int> find_blocked_Points(){
            mit "jetzt" neuem Objekt prüfen*/
            i--;
            deleted = true;
+           posBlocked = true;
          }
        }
      }
+     return posBlocked;
    }
 
-void remove_bearOff_Points(){
-     /* in virtual_checkers werden die Positionen anhand vorheriger moves bestimmt */
+void remove_bearOff_Points(bool posBlocked){
      int virtual_checkers[15];
      vector<int> bearOff = {25,26,27,28,29,30};
-     int array_position;
-     bool posBlocked ,deleted;
-
+     int arrayPosition, minElement;
+     bool deleted;
      for (int i = 0; i < allMoves.size(); i++){
+
+       /* in virtual_checkers werden später die neuen Positionen anhand vorheriger moves bestimmt */
        copy(begin(checkers), end(checkers), begin(virtual_checkers));
        deleted = false;
+
        for (int k = 0; !deleted && k < allMoves[i].num_moves; k++){
-         /* delete checker move > 24 */
+         /* entfernen aller Spielzüge deren Startposition größer ist als 24,
+         die also schon abgetragen wurden */
          if (allMoves[i].moves[k].point_from > 24){
            allMoves.erase(allMoves.begin() + i);
            i--;
            deleted = true;
            continue;
          }
+         minElement = *min_element(begin(virtual_checkers), end(virtual_checkers));
+         if (minElement < 19){
 
-
-         /* sperren ab 24 ,weil min(virtual_checkers) < 19 */
-         if (*min_element(begin(virtual_checkers), end(virtual_checkers)) < 19){
+           /* lösche alle Züge, deren neue Position > 24 wäre */
+           //cout << "\nmin < 19 ";
            if (find(bearOff.begin(), bearOff.end(),
            (allMoves[i].moves[k].point_from + allMoves[i].moves[k].roll))
            != bearOff.end()){
              allMoves.erase(allMoves.begin() + i);
              i--;
              deleted = true;
+           }else{
+             arrayPosition = find(begin(virtual_checkers), end(virtual_checkers)
+             , allMoves[i].moves[k].point_from) - begin(virtual_checkers);
+             virtual_checkers[arrayPosition] += allMoves[i].moves[k].roll;
            }
          }
+
+         /* bearOff Phase */
          else{
-           vector<int> blockedPoints = find_blocked_Points();
-           posBlocked = false;
-           int min;
-
-           for( int d = 0; d < 2; d++){
-             min = min_element(begin(virtual_checkers), end(virtual_checkers)) - begin(virtual_checkers);
-             if (find(blockedPoints.begin(),blockedPoints.end(),
-             allMoves[min].moves[k].point_from + state.dice[d]) != blockedPoints.end()){
-               posBlocked = true;
+           if (allMoves[i].moves[k].point_from > minElement){
+             /* sperren ab 25, direkte moves zur 25 sind erlaubt */
+             cout << "\n posBlocked, ab 25 begrenztes Abtragen ";
+             if ( allMoves[i].moves[k].point_from + allMoves[i].moves[k].roll > 25){
+               allMoves.erase(allMoves.begin() + i);
+               i--;
+               deleted = true;
              }
-           }
-
-           if (!posBlocked){
-            // cout << "\n!posBlocked, unbegrenztes Abtragen ";
-           /* unbegrenztes Abtragen, lediglich virtual_checkers updaten */
-           /* find() liefert einen Pointer auf den iterator zurück */
-           array_position = find(begin(virtual_checkers), end(virtual_checkers)
-           , allMoves[i].moves[k].point_from) - begin(virtual_checkers);
-           virtual_checkers[array_position] += allMoves[i].moves[k].roll;
-         }else{
-           //cout << "\n posBlocked, ab 25 begrenztes Abtragen ";
-           /* sperren ab 25, direkte moves zur 25 sind erlaubt */
-           if ( allMoves[i].moves[k].point_from + allMoves[i].moves[k].roll > 25){
-             allMoves.erase(allMoves.begin() + i);
-             i--;
-             deleted = true;
+           }else{
+             /* unbegrenztes Abtragen, wenn keine gegnerische Blockierung;
+             lediglich virtual_checkers updaten */
+             cout << "\n not Blocked, unbegrenztes Abtragen ";
+             arrayPosition = find(begin(virtual_checkers), end(virtual_checkers)
+             , allMoves[i].moves[k].point_from) - begin(virtual_checkers);
+             virtual_checkers[arrayPosition] += allMoves[i].moves[k].roll;
            }
          }
        }
      }
    }
- }
+
 
 
 
@@ -338,7 +338,7 @@ int use_lowest_move(){
 
       }else if (allMoves[positionIterator[p]].moves[k].point_from <
          allMoves[positionIterator[lowestMove]].moves[k].point_from){
-        /* alle Objekte löschen, derén Position größer war */
+        /* alle Objekte löschen, deren Position größer war */
         cout << "\nlösche element\n";
         for( int m = p - 1; m >= lowestMove; m--){
           cout << " " << m;
@@ -364,6 +364,7 @@ int use_lowest_move(){
 int
 main(int, char**) // ignore command line parameters
 {
+  bool posBlocked;
   while(true){
 
     initialize_multi_move(&mmove);
@@ -373,25 +374,27 @@ main(int, char**) // ignore command line parameters
 
     swap_player();
 
+
     allMoves.clear();
     init_checkers();
 
     /* Show the current board */
-    print_state(&state);
+    //print_state(&state);
     cout << "steine auf der Bar " << state.board[0];
 
     init_allMoves();
     cout <<"\n allMoves size " << allMoves.size() << '\n';
     for (int i = 0; i < 15; i++) cout << " " << checkers[i];
 
-    remove_blocked_Points();
+    /* sobald gegnerische Steine blockieren, liefert posBlocked true */
+    posBlocked = remove_blocked_Points();
     cout << "\nreduced by blocked_Moves: size " << allMoves.size() << '\n';
-    print_moves();
+    //print_moves();
 
-
-    remove_bearOff_Points();
-    cout << "\nreduced by bearOffMoves: size " << allMoves.size() << '\n';
-    print_moves();
+    cout << "\nposBlocked ? "<< posBlocked;
+    remove_bearOff_Points(posBlocked);
+    //cout << "\nreduced by bearOffMoves: size " << allMoves.size() << '\n';
+    //print_moves();
 
     /* wichtig: remove_bar_priority muss zwingend vor remove_shorter_Moves aufgerufen werden */
     remove_bar_priority();
@@ -399,8 +402,8 @@ main(int, char**) // ignore command line parameters
     //print_moves();
 
     remove_shorter_Moves();
-    cout << "reduced by shorter_Moves: size " << allMoves.size() << '\n';
-    print_moves();
+    //cout << "reduced by shorter_Moves: size " << allMoves.size() << '\n';
+    //print_moves();
 
 
 
@@ -408,7 +411,7 @@ main(int, char**) // ignore command line parameters
     cout << "reduced by lower_Dice: size " << allMoves.size() << '\n';
     int lowestMove = 0;
     if (allMoves.size() > 1) lowestMove = use_lowest_move();
-    cout << "lowestMove , tausch auf minimum \n";
+    //cout << "lowestMove , tausch auf minimum \n";
 
     if (allMoves.size() == 0){
       initialize_multi_move(&mmove);
