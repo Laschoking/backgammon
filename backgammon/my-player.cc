@@ -326,9 +326,9 @@ void swap_player(){
 
 int hit_them_where_you_can(){
   vector<int> hitPoints = find_hit_Points();
-  int hitPosition;
-  for (int i = 0; i < allMoves.size();i++){
+  for (int i = 1; hitPoints.size() > 0 && i < allMoves.size(); i++){
     for (int k = 0;  (k < allMoves[0].num_moves); k++ ){
+
       if (find(hitPoints.begin(), hitPoints.end(),
        allMoves[i].moves[k].point_from +  allMoves[i].moves[k].roll) != hitPoints.end()){
          return i;
@@ -384,15 +384,17 @@ main(int, char**) // ignore command line parameters
 
 
     if(allMoves.size() > 1 && allMoves[0].num_moves == 1) remove_lower_dice();
+    //cout << "\n before bestMove ";
 
-    int bestMove;
+    int bestMove = 0;
     if (allMoves.size() > 1) bestMove = hit_them_where_you_can();
-
+    //cout << "\n after bestMove " << bestMove;
     if (allMoves.size() == 0){
       initialize_multi_move(&mmove);
       allMoves.push_back(mmove);
       bestMove = 0;
     }else  if (state.player == 1){
+      bestMove = rand() % allMoves.size();
       for (int k = 0; k < allMoves[bestMove].num_moves; k++ ){
         allMoves[bestMove].moves[k].point_from = (25 - allMoves[bestMove].moves[k].point_from) % 25;
       }
